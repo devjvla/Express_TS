@@ -1,9 +1,8 @@
 import { Router } from "express";
+import UsersController from "../controllers/users.controller";
 
 const UsersRouter = Router();
 
-UsersRouter.get("/signin", (req, res) => {
-    res.send("Users Sign in Page");
-});
+UsersRouter.get("/signin", UsersController.signin);
 
 export default UsersRouter;
