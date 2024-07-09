@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import DatabaseModel from "./database.model";
 
 // Constants
-import { QUERY_YES } from "../config/constants/constants";
+import { QUERY_YES, QUERY_NO } from "../config/constants/constants";
 
 // Types and Interfaces
 import { User, UserParams, UserHashPasswordsParams } from "../config/types/User.type";
@@ -80,11 +80,20 @@ class UserModel extends DatabaseModel {
                 }
             }
 
+            // Create User Profile
+            let create_profile_query = mysqlFormat("INSERT INTO profiles (user_id, is_private, created_at, updated_at) VALUES (?, ?, NOW(), NOW());", [create_user.insertId, QUERY_NO]);
+            let create_profile       = await this.executeQuery<OkPacketParams>(create_profile_query);
+
+            if(!create_profile) {
+                throw new Error("And error occurred while creating User Profile record.");
+            }
+
             await this.commitTransaction(this.activeTransaction);
 
             response_data.status = true;
             response_data.result = {
                 id: create_user.insertId,
+                profile_id: create_profile.insertId,
                 first_name, last_name, email_address, 
             }
         } catch (error) {
@@ -141,7 +150,7 @@ class UserModel extends DatabaseModel {
         try {
             let { user_id, salt, password } = params;
 
-            let hash_user_password_query = mysqlFormat("UPDATE users SET password = SHA1(CONCAT(?, ?)) WHERE id = ?;", [salt, password, user_id]);
+            let hash_user_password_query = mysqlFormat("UPDATE users SET password = SHA2(CONCAT(?, ?), 256) WHERE id = ?;", [salt, password, user_id]);
             let hash_user_password       = await this.executeQuery(hash_user_password_query);
 
             if(!hash_user_password) {
