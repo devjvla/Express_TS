@@ -23,9 +23,9 @@ class DatabaseModel {
     /**
     * DOCU: This function returns a mysql connection.<br>
     * Triggered: When query will be executed.<br>
-    * Last Updated Date: April 09, 2024
+    * Last Updated Date: July 9, 2024
     * @returns The mysql database connection
-    * @author Jerick
+    * @author Jerick, updated by Jovic
     */
     getConnection = (): Promise<Connection> => {
         return new Promise(async (resolve, reject) => {
@@ -35,6 +35,9 @@ class DatabaseModel {
 			else{
                 try{
                     let connection: Connection = mysql.createConnection(<ConnectionOptions>DB_CONFIG);
+                    
+                    // Set active transaction
+                    this.activeTransaction = connection;
                     resolve(connection);
                 }
                 catch(error){

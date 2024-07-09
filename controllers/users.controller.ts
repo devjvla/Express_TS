@@ -26,7 +26,7 @@ class UsersController {
 
         try {
             // Check if required fields are provided
-            let check_fields = GlobalHelper.checkFields(["first_name", "last_name", "email_address", "password", "confirm_password"], [], req.body);
+            let check_fields = GlobalHelper.checkFields(["first_name", "last_name", "email_address"], ["password", "confirm_password"], req.body);
 
             if(!check_fields.status) {
                 response_data.message = check_fields.message;

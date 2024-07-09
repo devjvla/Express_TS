@@ -1,9 +1,13 @@
-import { Connection, format as mysqlFormat } from "mysql2";
+import { OkPacketParams, format as mysqlFormat } from "mysql2";
 import { validate } from "email-validator";
+import { format } from "date-fns";
 import DatabaseModel from "./database.model";
 
+// Constants
+import { QUERY_YES } from "../config/constants/constants";
+
 // Types and Interfaces
-import { User, UserParams } from "../config/types/User.type";
+import { User, UserParams, UserHashPasswordsParams } from "../config/types/User.type";
 import { ResponseDataInterface } from "../config/interfaces/ResponseData.interface";
 
 class UserModel extends DatabaseModel {
@@ -13,8 +17,8 @@ class UserModel extends DatabaseModel {
     * Last Updated Date: April 17, 2024
     * @author Jerick
     */
-    constructor(transaction_connection: Connection | null = null){
-        super(transaction_connection);
+    constructor(){
+        super();
     }
 
     /**
@@ -32,6 +36,8 @@ class UserModel extends DatabaseModel {
         let response_data: ResponseDataInterface< User | {} > = { status: false, message: null, error: null };
         
         try {
+            await this.startTransaction();
+
             // Destructure params
             let { first_name, last_name, email_address, password } = params;
 
@@ -51,7 +57,39 @@ class UserModel extends DatabaseModel {
             if(Object.keys(get_user.result).length) {
                 throw new Error("Email Address is already registered.");
             }
+
+            let created_at        = format(new Date(), "yyyy-MM-dd HH:mm:ss");
+            let create_user_query = mysqlFormat(`
+                INSERT INTO users (first_name, last_name, email_address, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, NOW());`,
+                [first_name, last_name, email_address, QUERY_YES, created_at]
+            );
+
+            let create_user = await this.executeQuery<OkPacketParams>(create_user_query);
+
+            if(!create_user) {
+                throw new Error("An error occurred while creating a User record");
+            }
+
+            // Create a hashed password if User signs up using form
+            if(password) {
+                let hash_user_password = await this._hashPassword({ user_id: create_user.insertId, salt: created_at, password });
+  
+                if(!hash_user_password.status) {
+                    throw new Error(hash_user_password.message);
+                }
+            }
+
+            await this.commitTransaction(this.activeTransaction);
+
+            response_data.status = true;
+            response_data.result = {
+                id: create_user.insertId,
+                first_name, last_name, email_address, 
+            }
         } catch (error) {
+            await this.cancelTransaction(error, this.activeTransaction, error.message);
+
             response_data.message = error.message;
             response_data.error   = error;
         }
@@ -71,11 +109,46 @@ class UserModel extends DatabaseModel {
         let response_data: ResponseDataInterface< User | {} > = { status: false, message: null, error: null };
 
         try {
-            let get_user_query = mysqlFormat("SELECT * FROM users WHERE email_address = ? AND is_active = ?;", [email, 1]);
+            let get_user_query = mysqlFormat("SELECT * FROM users WHERE email_address = ? AND is_active = ?;", [email, QUERY_YES]);
             let [get_user]     = await this.executeQuery<User[]>(get_user_query);
             
             response_data.status = true;
             response_data.result = { ...get_user };
+        } catch (error) {
+            response_data.message = error.message;
+            response_data.error   = error;
+        }
+
+        return response_data;
+    }
+
+    /**
+     * DOCU: Function will update user record with an hashed password
+     * Triggered by: this.signupUser <br>
+     * Last Updated Date: July 9, 2024
+     * @async
+     * @function
+     * @memberOf QueryModel
+     * @param user_id: string
+     * @param salt: string
+     * @param password: string
+     * @returns response_data - { status: true, result: {}, error: null, message: null }
+     * @author Jovic
+     */
+    _hashPassword = async (params: UserHashPasswordsParams): Promise<ResponseDataInterface<{}>> => {
+        let response_data: ResponseDataInterface<{}> = { status: false, message: null, error: null };
+
+        try {
+            let { user_id, salt, password } = params;
+
+            let hash_user_password_query = mysqlFormat("UPDATE users SET password = SHA1(CONCAT(?, ?)) WHERE id = ?;", [salt, password, user_id]);
+            let hash_user_password       = await this.executeQuery(hash_user_password_query);
+
+            if(!hash_user_password) {
+                throw new Error("An error occured while updating user password.");
+            }
+
+            response_data.status = true;
         } catch (error) {
             response_data.message = error.message;
             response_data.error   = error;
