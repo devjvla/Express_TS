@@ -8,3 +8,11 @@ export type User = {
     created_at: string;
     updated_at: string;
 };
+
+export type UserParams = {
+    first_name: string;
+    last_name: string;
+    email_address: string;
+    password: string;
+    confirm_password: string;
+}
