@@ -1,6 +1,8 @@
 import mysql, { Connection, ConnectionOptions } from "mysql2";
 import { ResponseDataInterface } from "../config/interfaces/ResponseData.interface";
 
+import { DB_CONFIG } from "../config/constants/constants";
+
 /**
  * Class representing Database Model
  */
@@ -32,15 +34,7 @@ class DatabaseModel {
             }
 			else{
                 try{
-                    const connectionConfig: ConnectionOptions = {
-                        host:     "localhost",
-                        user:     "root",
-                        password: "password",
-                        database: "help.local",
-                        port:     3306
-                    }
-
-                    let connection: Connection = mysql.createConnection(connectionConfig);
+                    let connection: Connection = mysql.createConnection(<ConnectionOptions>DB_CONFIG);
                     resolve(connection);
                 }
                 catch(error){
