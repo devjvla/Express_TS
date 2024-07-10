@@ -10,6 +10,9 @@ import { ResponseDataInterface } from "../config/interfaces/ResponseData.interfa
 // Helpers
 import GlobalHelper from "../helpers/index";
 
+// Constants
+import { HTTP } from "../config/constants/constants";
+
 class UsersController {
     /**
     * DOCU: This function will create a new User record.<br>
@@ -30,6 +33,7 @@ class UsersController {
 
             if(!check_fields.status) {
                 response_data.message = check_fields.message;
+
                 throw new Error(check_fields.message);
             }
 
@@ -42,13 +46,18 @@ class UsersController {
 
             let userModel   = new UserModel();
             response_data = await userModel.signupUser({ ...check_fields.result } as UserParams);
-            
         } catch (error) {
             response_data.message = error.message;
             response_data.error   = error;
         }
 
-        res.status(200).json(response_data);
+        res.status(response_data.code).json(response_data);
+    }
+
+    signin = async (req: Request, res: Response): Promise<void> => {
+        let response_data: ResponseDataInterface< User | {} > = { status: false, message: null, error: null };
+
+        res.status(HTTP.OK).json(response_data);
     }
 }
 

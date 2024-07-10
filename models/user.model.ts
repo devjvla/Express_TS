@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import DatabaseModel from "./database.model";
 
 // Constants
-import { QUERY_YES, QUERY_NO } from "../config/constants/constants";
+import { QUERY_YES, QUERY_NO, HTTP } from "../config/constants/constants";
 
 // Types and Interfaces
 import { User, UserParams, UserHashPasswordsParams } from "../config/types/User.type";
@@ -33,7 +33,7 @@ class UserModel extends DatabaseModel {
     * @author Jovic
 	*/
     signupUser = async (params: UserParams): Promise<ResponseDataInterface< User | {} >> => {
-        let response_data: ResponseDataInterface< User | {} > = { status: false, message: null, error: null };
+        let response_data: ResponseDataInterface< User | {} > = { code: HTTP.BAD_REQUEST, status: false, message: null, error: null };
         
         try {
             await this.startTransaction();
@@ -47,7 +47,7 @@ class UserModel extends DatabaseModel {
             }
 
             // Check if User record exists
-            let get_user = await this.getUserByEmail(email_address);
+            let get_user = await this.#getUserByEmail(email_address);
 
             if(!get_user.status) {
                 throw new Error(get_user.message);
@@ -73,7 +73,7 @@ class UserModel extends DatabaseModel {
 
             // Create a hashed password if User signs up using form
             if(password) {
-                let hash_user_password = await this._hashPassword({ user_id: create_user.insertId, salt: created_at, password });
+                let hash_user_password = await this.#hashPassword({ user_id: create_user.insertId, salt: created_at, password });
   
                 if(!hash_user_password.status) {
                     throw new Error(hash_user_password.message);
@@ -90,6 +90,7 @@ class UserModel extends DatabaseModel {
 
             await this.commitTransaction(this.activeTransaction);
 
+            response_data.code   = HTTP.CREATED;
             response_data.status = true;
             response_data.result = {
                 id: create_user.insertId,
@@ -114,7 +115,7 @@ class UserModel extends DatabaseModel {
     * @returns response_data - { status: true, result: { User }, error: null, message: null }
     * @author Jovic
 	*/
-    getUserByEmail = async (email: string): Promise<ResponseDataInterface< User | {} >> => {
+    #getUserByEmail = async (email: string): Promise<ResponseDataInterface< User | {} >> => {
         let response_data: ResponseDataInterface< User | {} > = { status: false, message: null, error: null };
 
         try {
@@ -144,8 +145,8 @@ class UserModel extends DatabaseModel {
      * @returns response_data - { status: true, result: {}, error: null, message: null }
      * @author Jovic
      */
-    _hashPassword = async (params: UserHashPasswordsParams): Promise<ResponseDataInterface<{}>> => {
-        let response_data: ResponseDataInterface<{}> = { status: false, message: null, error: null };
+    #hashPassword = async (params: UserHashPasswordsParams): Promise<ResponseDataInterface<{}>> => {
+        let response_data: ResponseDataInterface<{}> = { code: HTTP.BAD_REQUEST, status: false, message: null, error: null };
 
         try {
             let { user_id, salt, password } = params;
