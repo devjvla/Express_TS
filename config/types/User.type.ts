@@ -9,12 +9,17 @@ export type User = {
     updated_at?: string;
 };
 
-export type UserParams = {
+export type SignupUserParams = {
     first_name: string;
     last_name: string;
     email_address: string;
     password: string;
     confirm_password: string;
+}
+
+export type SigninUserParams = {
+    email_address: string;
+    password: string;
 }
 
 export type UserHashPasswordsParams = {

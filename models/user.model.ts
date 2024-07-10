@@ -7,7 +7,7 @@ import DatabaseModel from "./database.model";
 import { QUERY_YES, QUERY_NO, HTTP } from "../config/constants/constants";
 
 // Types and Interfaces
-import { User, UserParams, UserHashPasswordsParams } from "../config/types/User.type";
+import { User, SignupUserParams, UserHashPasswordsParams, SigninUserParams } from "../config/types/User.type";
 import { ResponseDataInterface } from "../config/interfaces/ResponseData.interface";
 
 class UserModel extends DatabaseModel {
@@ -23,8 +23,8 @@ class UserModel extends DatabaseModel {
 
     /**
     * This function will create a new User record with a hashed password.<br>
-    * Triggered by: signIn() function in users.controller.ts.<br>
-    * Last updated at: July 9, 2024
+    * Triggered by: signup() function in users.controller.ts.<br>
+    * Last updated at: July 10, 2024
     * @param first_name: string
     * @param last_name: string
     * @param email_address: string
@@ -32,7 +32,7 @@ class UserModel extends DatabaseModel {
     * @returns response_data - { status: true, result: { User }, error: null, message: null }
     * @author Jovic
 	*/
-    signupUser = async (params: UserParams): Promise<ResponseDataInterface< User | {} >> => {
+    signupUser = async (params: SignupUserParams): Promise<ResponseDataInterface< User | {} >> => {
         let response_data: ResponseDataInterface< User | {} > = { code: HTTP.BAD_REQUEST, status: false, message: null, error: null };
         
         try {
@@ -106,11 +106,45 @@ class UserModel extends DatabaseModel {
         
         return response_data;
     }
+
+    /**
+    * This function will get User record based on email address and password.<br>
+    * Triggered by: signin() function in users.controller.ts.<br>
+    * Last updated at: July 10, 2024
+    * @param email_address: string
+    * @param password: string
+    * @returns response_data - { status: true, result: { User }, error: null, message: null }
+    * @author Jovic
+	*/
+    signinUser = async (params: SigninUserParams): Promise<ResponseDataInterface<User>> => {
+        let response_data: ResponseDataInterface<User> = { code: HTTP.BAD_REQUEST, status: false, message: null, error: null };
+
+        try {
+            let get_user_query = mysqlFormat(`SELECT id, first_name, last_name, email_address, profile_picture_url FROM users 
+                WHERE email_address = ? AND password = SHA2(CONCAT(created_at, ?), 256);`,[params.email_address, params.password]
+            );
+
+            let [get_user] = await this.executeQuery<User[]>(get_user_query);
+
+            if(!get_user) {
+                throw new Error("Invalid Email Address or Password");
+            }
+
+            response_data.code   = HTTP.OK;
+            response_data.status = true;
+            response_data.result = get_user;
+        } catch (error) {
+            response_data.message = error.message;
+            response_data.error   = error;
+        }
+
+        return response_data;
+    }
     
     /**
     * This function will fetch a specific user based on the email provided.<br>
     * Triggered by: UserModel > signupUser()<br>
-    * Last updated at: July 9, 2024
+    * Last updated at: July 10, 2024
     * @param email: string
     * @returns response_data - { status: true, result: { User }, error: null, message: null }
     * @author Jovic
@@ -135,7 +169,7 @@ class UserModel extends DatabaseModel {
     /**
      * DOCU: Function will update user record with an hashed password
      * Triggered by: this.signupUser <br>
-     * Last Updated Date: July 9, 2024
+     * Last Updated Date: July 10, 2024
      * @async
      * @function
      * @memberOf QueryModel
