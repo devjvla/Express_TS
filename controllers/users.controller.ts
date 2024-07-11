@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 import UserModel from "../models/user.model";
 
 // Types and Interfaces
-import { User, SignupUserParams, SigninUserParams } from "../config/types/User.type";
+import { User, UserCredentials, SignupUserParams, SigninUserParams } from "../config/types/User.type";
 import { ResponseDataInterface } from "../config/interfaces/ResponseData.interface";
 
 // Helpers
@@ -57,7 +57,7 @@ class UsersController {
     /**
     * DOCU: This function will get User record.<br>
     * Triggered: When user signs up.<br>
-    * Last Updated Date: July 10, 2024
+    * Last Updated Date: July 11, 2024
     * @param req - Required: { params: email_address, password }
     * @param res
     * @returns 
@@ -65,7 +65,7 @@ class UsersController {
     * @author Jovic
     */
     signin = async (req: Request, res: Response): Promise<void> => {
-        let response_data: ResponseDataInterface<User> = { status: false, message: null, error: null };
+        let response_data: ResponseDataInterface<void> = { status: false, message: null, error: null };
         
         try {
             // check if required fields are valid
@@ -77,13 +77,31 @@ class UsersController {
                 throw new Error(check_fields.message);
             }
 
-            let userModel = new UserModel();
-            response_data = await userModel.signinUser({ ...check_fields.result } as SigninUserParams);
+            let userModel   = new UserModel();
+            let signin_user = await userModel.signinUser({ ...check_fields.result } as SigninUserParams);
 
+            if(!signin_user.status) {
+                throw new Error(signin_user.message);
+            }
+
+            // Set HTTP-Only Cookie
+            res.cookie("userToken",signin_user.result.userToken, { httpOnly: true });
+
+            response_data.code   = signin_user.code;
+            response_data.status = signin_user.status;
         } catch (error) {
             response_data.message = error.message;
             response_data.error   = error;
         }
+
+        res.status(HTTP.OK).json(response_data);
+    }
+
+    // TODO: Delete later on. This is just to test if JWT is verified correctly.
+    tryjwt = async (req: Request & { user: UserCredentials }, res: Response): Promise<void> => {
+        let response_data: ResponseDataInterface<void> = { status: false, message: null, error: null };
+
+        console.log(req?.user);
 
         res.status(HTTP.OK).json(response_data);
     }

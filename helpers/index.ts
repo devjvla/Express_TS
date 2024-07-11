@@ -1,11 +1,5 @@
-/* Imports for vendors */
-// import jwt from "jsonwebtoken";
-
 /* Imports for interfaces */
 import { ResponseDataInterface } from "../config/interfaces/ResponseData.interface";
-
-/* Imports for constants */
-// import { JWTConfig } from "../configs/constants/constants";
 
 type SanitizedData = Record<string, number | string>;
 
@@ -60,17 +54,6 @@ class GlobalHelper{
 
         return response_data;
     }
-
-    /**
-    * This function is used for generating a jwt token using the jwt secret.<br>
-    * Last updated at: April 12, 2024
-    * @param {Object} credentials - Credentials to be converted to token.
-    * @returns {String} token - Token generated from the given credentials.
-    * @author Jerick
-    */
-    // generateJWTToken = (credentials: Record<string, string | number>, expiresIn: number = JWTConfig.expiresIn): string => {
-    //     return jwt.sign(credentials, JWTConfig.secret, { expiresIn });
-    // }
 }
 
 export default new GlobalHelper();

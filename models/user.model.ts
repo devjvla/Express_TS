@@ -3,11 +3,14 @@ import { validate } from "email-validator";
 import { format } from "date-fns";
 import DatabaseModel from "./database.model";
 
+// Helpers
+import AuthHelper from "../helpers/auth.helper";
+
 // Constants
 import { QUERY_YES, QUERY_NO, HTTP } from "../config/constants/constants";
 
 // Types and Interfaces
-import { User, SignupUserParams, UserHashPasswordsParams, SigninUserParams } from "../config/types/User.type";
+import { User, UserCredentials, SignupUserParams, UserHashPasswordsParams, SigninUserParams } from "../config/types/User.type";
 import { ResponseDataInterface } from "../config/interfaces/ResponseData.interface";
 
 class UserModel extends DatabaseModel {
@@ -110,29 +113,41 @@ class UserModel extends DatabaseModel {
     /**
     * This function will get User record based on email address and password.<br>
     * Triggered by: signin() function in users.controller.ts.<br>
-    * Last updated at: July 10, 2024
+    * Last updated at: July 11, 2024
     * @param email_address: string
     * @param password: string
     * @returns response_data - { status: true, result: { User }, error: null, message: null }
     * @author Jovic
 	*/
-    signinUser = async (params: SigninUserParams): Promise<ResponseDataInterface<User>> => {
-        let response_data: ResponseDataInterface<User> = { code: HTTP.BAD_REQUEST, status: false, message: null, error: null };
+    signinUser = async (params: SigninUserParams): Promise<ResponseDataInterface< User & { userToken: string }>> => {
+        let response_data: ResponseDataInterface< User & { userToken: string }> = { code: HTTP.BAD_REQUEST, status: false, message: null, error: null };
 
         try {
-            let get_user_query = mysqlFormat(`SELECT id, first_name, last_name, email_address, profile_picture_url FROM users 
-                WHERE email_address = ? AND password = SHA2(CONCAT(created_at, ?), 256);`,[params.email_address, params.password]
+            let get_user_query = mysqlFormat(`
+                SELECT
+                    users.id, first_name, last_name, email_address, profiles.id AS profile_id
+                FROM users
+                INNER JOIN profiles ON profiles.user_id = users.id
+                WHERE email_address = ? AND password = SHA2(CONCAT(users.created_at, ?), 256);`,
+                [params.email_address, params.password]
             );
 
-            let [get_user] = await this.executeQuery<User[]>(get_user_query);
+            let [get_user] = await this.executeQuery<UserCredentials[]>(get_user_query);
 
             if(!get_user) {
                 throw new Error("Invalid Email Address or Password");
             }
 
+            // Create JWT
+            const create_token = AuthHelper.createToken(get_user);
+
+            if(!create_token.status) {
+                throw new Error(create_token.message);
+            }
+
             response_data.code   = HTTP.OK;
             response_data.status = true;
-            response_data.result = get_user;
+            response_data.result = { ...get_user, userToken: create_token.result };
         } catch (error) {
             response_data.message = error.message;
             response_data.error   = error;
@@ -153,7 +168,7 @@ class UserModel extends DatabaseModel {
         let response_data: ResponseDataInterface< User | {} > = { status: false, message: null, error: null };
 
         try {
-            let get_user_query = mysqlFormat("SELECT * FROM users WHERE email_address = ? AND is_active = ?;", [email, QUERY_YES]);
+            let get_user_query = mysqlFormat("SELECT id FROM users WHERE email_address = ? AND is_active = ?;", [email, QUERY_YES]);
             let [get_user]     = await this.executeQuery<User[]>(get_user_query);
             
             response_data.status = true;

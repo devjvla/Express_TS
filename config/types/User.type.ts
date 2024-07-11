@@ -27,3 +27,11 @@ export type UserHashPasswordsParams = {
     salt: string;
     password: string;
 }
+
+export type UserCredentials = {
+    id: number;
+    profile_id: number;
+    first_name: string;
+    last_name: string;
+    email_address: string;
+}

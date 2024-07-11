@@ -2,6 +2,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+// API
+export const API_PREFIX = process.env.API_PREFIX;
 export const PORT = 3000;
 
 // Database-related Constants
@@ -24,3 +26,7 @@ export const HTTP = {
     FORBIDDEN: 403,
     NOT_FOUND: 404
 }
+
+// JWT
+export const JWT_SECRET = process.env.JWT_SECRET
+export const JWT_TOKEN_EXPIRATION = 3600 // 1 hour

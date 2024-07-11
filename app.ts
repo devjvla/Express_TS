@@ -6,7 +6,7 @@ import compression  from "compression";
 import cors         from "cors";
 import dotenv       from "dotenv";
 
-import { PORT }     from "./config/constants/constants";
+import { API_PREFIX, PORT }     from "./config/constants/constants";
 import UsersRouter  from "./routes/users.routes";
 
 // Allow app to use .env variables
@@ -25,7 +25,7 @@ app.use(cors({
 }));
 
 // Setup Routes
-app.use(`/${process.env.API_PREFIX}/users`, UsersRouter);
+app.use(`/${API_PREFIX}/users`, UsersRouter);
 
 
 // Setup Express Server
